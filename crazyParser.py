@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# !/usr/bin/python
 '''
 
 This script uses urlcrazy and dnstwist to identify possible typosquatted
@@ -18,11 +18,11 @@ the results are mailed off for review and blocking in your web proxy.
             Note: Reason is not used by crazyParser.  It is for your
             reference only.
 
-	urlcrazy: installed at /usr/bin/urlcrazy. If this installed in an
+    urlcrazy: installed at /usr/bin/urlcrazy. If this installed in an
             alternate location, the value of urlcrazyPath will need to be
             updated to reflect its location.
 
-	dnstwist: installed at /opt/dnstwist/dnstwist.py. If this installed in an
+    dnstwist: installed at /opt/dnstwist/dnstwist.py. If this installed in an
             alternate location, the value of dnstwistPath will need to be
             updated to reflect its location.
 
@@ -39,22 +39,21 @@ import os
 import sys
 import subprocess
 import csv
-import smtplib
 import tempfile
-import email
 import atexit
 
-urlcrazyPath = '/usr/bin/urlcrazy' # update if your installation differs
-dnstwistPath = '/opt/dnstwist/dnstwist.py' # update if your installation differs
+urlcrazyPath = '/Users/DJ/Desktop/CrazyParser/urlcrazy/urlcrazy'  # update if your installation differs
+dnstwistPath = '/usr/local/lib/python3.7/site-packages'  # update if your installation differs
 
 # set up global defaults
-tempFiles = [] # define temporary files array
+tempFiles = []  # define temporary files array
+
 
 def checkPerms(docRoot, resultsFile):
     # Test if we have execute permissions to docRoot
     if not os.access(docRoot, os.X_OK):
-        print("Destination directory " + docRoot + " not accessible.")
-        print("Please check permissions.  Exiting...")
+        print "Destination directory " + docRoot + " not accessible."
+        print "Please check permissions.  Exiting..."
         sys.exit()
     else:
         pass
@@ -63,57 +62,59 @@ def checkPerms(docRoot, resultsFile):
     try:
         permtest = tempfile.TemporaryFile('w+b', bufsize=-1, dir=docRoot)
     except OSError:
-        print("Unable to write to desired directory: " + docRoot + ".")
-        print("Please check permissions.  Exiting...")
+        print "Unable to write to desired directory: " + docRoot + "."
+        print "Please check permissions.  Exiting..."
         sys.exit()
+
 
 def checkDepends(myDomains, knownDomains, docRoot, resultsFile, urlcrazy, dnstwist):
     # Test if mydomains.csv exists
     if not os.access(myDomains, os.F_OK) or not os.access(knownDomains, os.F_OK):
-        print("Required configuration files - mydomains.csv or knowndomains.csv - not found.")
-        print("Please verify configuration.  Exiting...")
+        print "Required configuration files - mydomains.csv or knowndomains.csv - not found."
+        print "Please verify configuration.  Exiting..."
         sys.exit()
     else:
         pass
 
     # Test if docRoot is actually a directory
     if not os.path.isdir(docRoot):
-        print("Argument: -d " + docRoot + " is not a directory.")
-        print("Please review arguments.  Exiting...")
+        print "Argument: -d " + docRoot + " is not a directory."
+        print "Please review arguments.  Exiting..."
         sys.exit()
     else:
         pass
 
     # Ensure resultsFile isn't actually a directory
     if os.path.exists(resultsFile) and not os.path.isfile(resultsFile):
-    #if not os.path.isfile(resultsFile):
-        print("Argument: -o " + resultsFile + " should be a regular file but is something else.")
-        print("Please review arguments.  Exiting...")
+        # if not os.path.isfile(resultsFile):
+        print "Argument: -o " + resultsFile + " should be a regular file but is something else."
+        print "Please review arguments.  Exiting..."
         sys.exit()
     else:
         pass
-        
+
     # Test if urlcrazy exists
     if urlcrazy:
         if not os.access(urlcrazyPath, os.F_OK):
-            print("URLCrazy specified as " + urlcrazyPath + " but was not found.")
-            print("Please check urlcrazyPath in crazyParser.py.  Exiting...")
+            print "URLCrazy specified as " + urlcrazyPath + " but was not found."
+            print "Please check urlcrazyPath in crazyParser.py.  Exiting..."
             sys.exit()
 
     # Test if dnstwist exists
     if dnstwist:
         if not os.access(dnstwistPath, os.F_OK):
-            print("DNStwist specified as " + dnstwistPath + "but was not found.")
-            print("Please check urlcrazyPath in crazyParser.py.  Exiting...")
+            print "DNStwist specified as " + dnstwistPath + "but was not found."
+            print "Please check urlcrazyPath in crazyParser.py.  Exiting..."
             sys.exit()
-                 
+
+
 def doCrazy(docRoot, resultsFile, myDomains, urlcrazy, dnstwist):
     # cleanup old results file
     try:
         os.remove(resultsFile)
     except OSError:
         pass
-    
+
     with open(myDomains, 'rbU') as domains:
         reader = csv.reader(domains)
         for domain in domains:
@@ -121,38 +122,41 @@ def doCrazy(docRoot, resultsFile, myDomains, urlcrazy, dnstwist):
 
             # Run urlcrazy if enabled
             if urlcrazy:
-                ucoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.uctmp', prefix=domain + '.', dir=docRoot, delete=False)
-                ucargs=[urlcrazyPath, '-f', 'csv', '-o', ucoutfile.name, domain]
+                ucoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.uctmp', prefix=domain + '.',
+                                                        dir=docRoot, delete=False)
+                ucargs = [urlcrazyPath, '-f', 'csv', '-o', ucoutfile.name, domain]
                 try:
                     with open(os.devnull, 'w') as devnull:
                         subprocess.call(ucargs, stdout=devnull, close_fds=True, shell=False)
                         tempFiles.append(ucoutfile.name)
                 except:
                     # An error occurred running urlcrazy
-                    print("Unexpected error running urlcrazy:", sys.exc_info()[0])
+                    print "Unexpected error running urlcrazy:", sys.exc_info()[0]
                     pass
 
             # Run dnstwist if enabled
-            dtargs=[dnstwistPath, '-r', '-c', domain]
+            dtargs = [dnstwistPath, '-r', '-c', domain]
             if dnstwist:
-                dtoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.dttmp', prefix=domain + '.', dir=docRoot, delete=False)
+                dtoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.dttmp', prefix=domain + '.',
+                                                        dir=docRoot, delete=False)
                 try:
                     with open(dtoutfile.name, 'wb') as dtout:
-                        output=subprocess.check_output(dtargs, shell=False)
+                        output = subprocess.check_output(dtargs, shell=False)
                         dtout.write(output)
                     tempFiles.append(dtoutfile.name)
                 except:
                     # An error occurred running dnstwist
-                    print("Unexpected error running dnstwist:", sys.exc_info()[0])
+                    print "Unexpected error running dnstwist:", sys.exc_info()[0]
                     pass
-    
+
+
 def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
     # set up domains dictionary
     domains = []
 
     # compare known domains to discovered domains
     knowndom = []
-    with open (knownDomains, 'rbU') as domfile:
+    with open(knownDomains, 'rbU') as domfile:
         reader = csv.DictReader(domfile)
         for row in reader:
             knowndom.append(row['Domain'])
@@ -161,7 +165,7 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
         # Parse each urlcrazy temp file in tempFiles list
         for file in tempFiles:
             if file.endswith(".uctmp"):
-                with open (file, 'rbU') as csvfile:
+                with open(file, 'rbU') as csvfile:
                     reader = csv.DictReader(row.replace('\0', '') for row in csvfile)
                     for row in reader:
                         if len(row) != 0:
@@ -175,19 +179,19 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
         # Parse each dnstwist temp file in tempFiles list
         for file in tempFiles:
             if file.endswith(".dttmp"):
-                with open (file, 'rbU') as csvfile:
+                with open(file, 'rbU') as csvfile:
                     reader = csv.reader(csvfile)
-                    next(reader) # Due to recent change in dnstwist, skip header line
-                    next(reader) # skip second line, contains original domain
+                    next(reader)  # Due to recent change in dnstwist, skip header line
+                    next(reader)  # skip second line, contains original domain
                     for row in reader:
                         if row[1] in knowndom:
                             pass
                         else:
                             domains.append(row[1])
-                        
+
     # dedupe domains list
     domains = dedup(domains)
-    
+
     # write out results
     # this file will only contain the header if there are no new results
     with open(resultsFile, 'wb') as outfile:
@@ -198,83 +202,17 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
             writer.writerow({'Domain': row})
     outfile.close()
 
-def sendMail(resultsFile):
-    '''
-            sendMail sends the results of urlcrazy scans,
-            including diffs to your selected address
-            using a given address.
-
-            Specify your sending account username in mail_user.
-            Specify your account password in mail_pwd.
-
-            Configure for your mail server by modifying the
-            mailServer = line.
-
-            This assumes your mail server supports starttls.
-            Future versions will allow you to specify whether
-            or not to use starttls. To suppress starttls,
-            remove the line mailServer.starttls().
-
-    '''
-
-    mail_user = "mail_sender_account"
-    mail_pwd = "your_pass_here"
-    mail_recip = ["recipient_address_1", "recipient_address_2"]
-
-    def mail(to, subject, text, resultsFile, numResults):
-            msg = email.MIMEMultipart()
-
-            msg['From'] = mail_user
-            msg['To'] = ", ".join(to)
-            msg['Subject'] = subject
-
-            msg.attach(email.MIMEText(text))
-
-            # Attach the attachment if there are new results
-            # numResults is the number of rows in the results file
-            # This is always at least 1 due to the header row
-            if numResults >= 2:
-                part = email.MIMEBase('application', 'octet-stream')
-                part.set_payload(open(resultsFile, 'rb').read())
-                email.Encoders.encode_base64(part)
-                part.add_header('Content-Disposition',
-                        'attachment; filename="%s"' % os.path.basename(resultsFile))
-                msg.attach(part)
-            else:
-                pass
-
-            mailServer = smtplib.SMTP("smtp.gmail.com", 587)
-            mailServer.ehlo()
-            mailServer.starttls()
-            mailServer.ehlo()
-            mailServer.login(mail_user, mail_pwd)
-            mailServer.sendmail(mail_user, to, msg.as_string())
-            mailServer.close()
-    
-    # this counts the number of line in the results file
-    # if it is 1, there were no results
-    numResults = sum(1 for line in open(resultsFile))
-    if numResults == 1:
-        mail(mail_recip,
-                "Daily DNS typosquatting recon report", # subject line
-                "There were no new results in today's scan", # your message here
-                resultsFile, numResults)
-    else:
-        mail(mail_recip,
-                "Daily DNS typosquatting recon report", # subject line
-                "The results from today's DNS typosquatting scan are attached", # your message here
-                resultsFile, numResults)
-
 def doCleanup(docRoot):
     # Delete all temporary .tmp files created by urlcrazy and dnstwist
     for f in tempFiles:
         try:
             os.remove(f)
         except OSError:
-            print("Error removing temporary file: " + f)
+            print "Error removing temporary file: " + f
             pass
 
-def dedup(domainslist, idfun=None): # code from http://www.peterbe.com/plog/uniqifiers-benchmark
+
+def dedup(domainslist, idfun=None):  # code from http://www.peterbe.com/plog/uniqifiers-benchmark
     if idfun is None:
         def idfun(x): return x
     seen = {}
@@ -286,17 +224,24 @@ def dedup(domainslist, idfun=None): # code from http://www.peterbe.com/plog/uniq
         result.append(item)
     return result
 
+
 def main():
     # Set up parser for command line arguments
-    parser = argparse.ArgumentParser(prog='crazyParser.py', description='crazyParser - a tool to detect new typosquatted domain registrations by using the output from dnstwist and/or urlcrazy', add_help=True)
-    parser.add_argument('-c', '--config', help='Directory location for required config files', default=os.getcwd(), required=False)
-    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default='results.csv', required=False)
-    parser.add_argument('-d', '--directory', help='Directory for saving output, defaults to current directory', default=os.getcwd(), required=False)
-    parser.add_argument('-m', '--email', help='Email results upon completion, defaults to False', action="store_true", default=False, required=False)
-    parser.add_argument('--dnstwist', help='Use dnstwist for domain discovery, defaults to False', action="store_true", default=False, required=False)
-    parser.add_argument('--urlcrazy', help='Use urlcray for domain discovery, defaults to False', action="store_true", default=False, required=False)
+    parser = argparse.ArgumentParser(prog='crazyParser.py',
+                                     description='crazyParser - a tool to detect new typosquatted domain registrations by using the output from dnstwist and/or urlcrazy',
+                                     add_help=True)
+    parser.add_argument('-c', '--config', help='Directory location for required config files', default=os.getcwd(),
+                        required=False)
+    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default='results.csv',
+                        required=False)
+    parser.add_argument('-d', '--directory', help='Directory for saving output, defaults to current directory',
+                        default=os.getcwd(), required=False)
+    parser.add_argument('--dnstwist', help='Use dnstwist for domain discovery, defaults to False', action="store_true",
+                        default=False, required=False)
+    parser.add_argument('--urlcrazy', help='Use urlcray for domain discovery, defaults to False', action="store_true",
+                        default=False, required=False)
 
-    if  len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
@@ -305,8 +250,8 @@ def main():
         if os.path.isdir(args.config):
             configDir = args.config
         else:
-            print("ERROR! Specified configuration directory " + args.config + " does not exist!")
-            print("Exiting...")
+            print "ERROR! Specified configuration directory " + args.config + " does not exist!"
+            print "Exiting..."
             sys.exit()
     else:
         configDir = args.config
@@ -315,16 +260,16 @@ def main():
         if os.path.isdir(args.directory):
             docRoot = args.directory
         else:
-            print("ERROR! Specified output directory " + args.directory + " does not exist!")
-            print("Exiting...")
+            print "ERROR! Specified output directory " + args.directory + " does not exist!"
+            print "Exiting..."
             sys.exit()
     else:
         docRoot = args.directory
 
     # set up global files
     resultsFile = os.path.join(docRoot, args.output)
-    myDomains = os.path.join(configDir,'mydomains.csv')
-    knownDomains = os.path.join(configDir,'knowndomains.csv')
+    myDomains = os.path.join(configDir, 'mydomains.csv')
+    knownDomains = os.path.join(configDir, 'knowndomains.csv')
 
     # Check to make sure we have the necessary permissions
     checkPerms(docRoot, resultsFile)
@@ -334,18 +279,13 @@ def main():
 
     # Clean up output files at exit
     atexit.register(doCleanup, docRoot)
-    
+
     # Execute discovery
     doCrazy(docRoot, resultsFile, myDomains, args.urlcrazy, args.dnstwist)
 
     # parse output
     parseOutput(docRoot, knownDomains, resultsFile, args.urlcrazy, args.dnstwist)
 
-    # send results if -m/--email is true
-    if args.email == True:
-        sendMail(resultsFile)
-    else:
-        pass
 
 if __name__ == "__main__":
     main()
